@@ -284,7 +284,7 @@ class DeductionService {
             double lowerBound = lowerBoundStr.isEmpty() ? 0 : Double.parseDouble(lowerBoundStr);
             double upperBound = upperBoundStr.isEmpty() ? Double.MAX_VALUE : Double.parseDouble(upperBoundStr);
             
-            if (monthlySalary >= lowerBound &&  monthlySalary <= upperBound) {
+            if (lowerBound <= monthlySalary && monthlySalary <= upperBound) {
                 double deduction = Double.parseDouble(row.get(2).toString().replace(",", "").trim());
                 
                 return deduction;
@@ -308,43 +308,48 @@ class DeductionService {
             double lowerBound = lowerBoundStr.isEmpty() ? 0 : Double.parseDouble(lowerBoundStr);
             double upperBound = upperBoundStr.isEmpty() ? Double.MAX_VALUE : Double.parseDouble(upperBoundStr);
             
-            int bracket = Integer.parseInt(row.get(4).toString().trim());
+            if (lowerBound <= monthlySalary && monthlySalary <= upperBound) {
+                
+                int bracket = Integer.parseInt(row.get(4).toString().trim());
             
-            switch (bracket) {
-                case 1 -> {
-                    // Fixed monthly premium
-                    double deduction = Double.parseDouble(row.get(3).toString().trim());
-                    
-                    // Monthly premium contributions are equally shared between the employee and employer.
-                    deduction = deduction * 0.5;
-                    
-                    return deduction;        
-                }
-                case 2 -> {
-                    // The 3% premium rate of Philhealth matrix
-                    double deduction = monthlySalary * 0.03;
-                    
-                    // Monthly premium contributions are equally shared between the employee and employer.
-                    deduction = deduction * 0.5;
-                    return deduction;
-                    
-                }
-                case 3 -> {
-                    // Fixed monthly premium 
-                    double deduction = Double.parseDouble(row.get(3).toString().trim());
-                    
-                    // Monthly premium contributions are equally shared between the employee and employer.
-                    deduction = deduction * 0.5;
-                    
-                    return deduction;
-                }
-                default -> {
-                    
-                    // Handle unexpected bracket values if needed.
-                    
-                    return 0.0;
+                switch (bracket) {
+                    case 1 -> {
+                        // Fixed monthly premium
+                        double deduction = Double.parseDouble(row.get(3).toString().replace(",", "").trim());
+                        
+                        // Monthly premium contributions are equally shared between the employee and employer.
+                        deduction = deduction * 0.5;
+
+                        return deduction;        
+                    }
+                    case 2 -> {
+                        // The 3% premium rate of Philhealth matrix
+                        double deduction = monthlySalary * 0.03;
+
+                        // Monthly premium contributions are equally shared between the employee and employer.
+                        deduction = deduction * 0.5;
+                        return deduction;
+
+                    }
+                    case 3 -> {
+                        // Fixed monthly premium 
+                        double deduction = Double.parseDouble(row.get(3).toString().replace(",", "").trim());
+                        
+                        // Monthly premium contributions are equally shared between the employee and employer.
+                        deduction = deduction * 0.5;
+
+                        return deduction;
+                    }
+                    default -> {
+
+                        // Handle unexpected bracket values if needed.
+
+                        return 0.0;
+                    }
                 }
             }
+            
+           
         }
         return 0.0;
     }
@@ -361,7 +366,7 @@ class DeductionService {
             double lowerBound = lowerBoundStr.isEmpty() ? 0 : Double.parseDouble(lowerBoundStr);
             double upperBound = upperBoundStr.isEmpty() ? Double.MAX_VALUE : Double.parseDouble(upperBoundStr);
             
-            if (monthlySalary >= lowerBound && monthlySalary <= upperBound) {
+            if (lowerBound <= monthlySalary && monthlySalary <= upperBound) {
                 double percentageValue = Double.parseDouble(row.get(2).toString().trim());
                 percentageValue = percentageValue * 0.01;
                 
@@ -371,6 +376,7 @@ class DeductionService {
                 if (deduction > 100) {
                     deduction = 100;
                 }
+                
                 return deduction;
             }
         }
@@ -378,60 +384,35 @@ class DeductionService {
         return 0.0;
     }
     
-    public static double calculateTaxDeduction(Employee employee, List<List<Object>> taxMatrix) {
-        
-        // Convert the weekly gross to monthly gross (approx.)
-        double weeklyGross = employee.getWeeklyGrossWage();
-        double monthlyGross = weeklyGross * 4;  // Assume 4 weeks in a month
-        
-        // For Debugging, to track data
-        // System.out.println("Weekly Gross: " + weeklyGross);
-        // System.out.println("Monthly Gross: " + monthlyGross);
+    // Adjusted tax deduction calculation to accept taxable wage
+    public static double calculateTaxDeduction(Employee employee, List<List<Object>> taxMatrix, double taxableWage) {
+        double monthlyTaxable = taxableWage * 4; // Convert to monthly taxable amount
 
-        // Loop through each tax bracket row in the matrix.
         for (List<Object> row : taxMatrix) {
-            
             String lowerBoundStr = row.get(0).toString().replace(",", "").trim();
             String upperBoundStr = row.get(1).toString().replace(",", "").trim();
 
             double lowerBound = lowerBoundStr.isEmpty() ? 0 : Double.parseDouble(lowerBoundStr);
             double upperBound = upperBoundStr.isEmpty() ? Double.MAX_VALUE : Double.parseDouble(upperBoundStr);
 
-            // Check if the monthly gross salary falls within a particular bracket
-            if (monthlyGross >= lowerBound && monthlyGross <= upperBound) {
-                // Parse the percentage and fixed value.
+            if (monthlyTaxable >= lowerBound && monthlyTaxable <= upperBound) {
                 double percentageValue = Double.parseDouble(row.get(2).toString().trim());
                 double fixedDeduction = Double.parseDouble(row.get(3).toString().replace(",", "").trim());
-                
-                // For Debugging, to track data
-                // System.out.println("Tax Bracket: " + lowerBound + " - " + upperBound);
-                // System.out.println("Percentage: " + percentageValue + "%, Fixed Deduction: " + fixedDeduction);
 
                 double percentage = percentageValue / 100;
-                double excess = monthlyGross - lowerBound;
+                double excess = monthlyTaxable - lowerBound;
 
                 double percentageDeduction = excess * percentage;
+                
                 double totalMonthlyDeduction = fixedDeduction + percentageDeduction;
 
-                // Round intermediate calculations to avoid precision issues
-                percentageDeduction = Math.round(percentageDeduction * 100.0) / 100.0;
-                totalMonthlyDeduction = Math.round(totalMonthlyDeduction * 100.0) / 100.0;
-
-                // Convert back to weekly by dividing by 4 and round
-                double weeklyDeduction = totalMonthlyDeduction / 4;
-
-                // Round to two decimal places to fix the float thing problem before being passed to other
-                weeklyDeduction = Math.round(weeklyDeduction * 100.0) / 100.0;
-
-                return weeklyDeduction;
+                return totalMonthlyDeduction;
             }
         }
 
-        // If no matching bracket is found, return 0.
+        System.out.println("No matching tax bracket found. Returning 0 deduction.");
         return 0.0;
     }
-
-
 
     
     /*
@@ -439,21 +420,39 @@ class DeductionService {
      * This method can update the Employee object or return an object with a detailed breakdown.
      * For now, it simply prints the calculated values.
      */
-    public static void calculateAllDeductions(Employee employee,
-                                              List<List<Object>> sssMatrix,
-                                              List<List<Object>> phMatrix,
-                                              List<List<Object>> pagIbigMatrix,
-                                              List<List<Object>> taxMatrix) {
-        // Calculate deductions (local to DeductionService)
-        double sssDeduction = calculateSssDeduction(employee, sssMatrix)/4;
-        double philHealthDeduction = calculatePhilHealthDeduction(employee, phMatrix)/4;
-        double pagIbigDeduction = calculatePagIbigDeduction(employee, pagIbigMatrix)/4;
-        double taxDeduction = calculateTaxDeduction(employee, taxMatrix)/4;
-
-        // Calculate net wage directly using the getter for grossWage
-        double netWage = employee.getWeeklyGrossWage() - sssDeduction - philHealthDeduction - pagIbigDeduction - taxDeduction;
+    public static void calculateAllDeductions(Employee employee, List<List<Object>> sssMatrix, List<List<Object>> philHealthMatrix, List<List<Object>> pagIbigMatrix, List<List<Object>> withHoldingTaxMatrix) {
+    
+        // Calculate deductions using respective methods
+        double sssDeduction = calculateSssDeduction(employee, sssMatrix);
+        double philHealthDeduction = calculatePhilHealthDeduction(employee, philHealthMatrix);
+        double pagIbigDeduction = calculatePagIbigDeduction(employee, pagIbigMatrix);
         
+//        System.out.println("MONTHLY SSS Deduction: " + sssDeduction);
+//        System.out.println("MONTHLY PhilHealth Deduction: " + philHealthDeduction);
+//        System.out.println("MONTHLY Pag-IBIG Deduction: " + pagIbigDeduction);
+        
+        sssDeduction = sssDeduction / 4;
+        philHealthDeduction = philHealthDeduction / 4;
+        pagIbigDeduction = pagIbigDeduction / 4;
+        
+        System.out.println("WEEKLY SSS Deduction: " + sssDeduction);
+        System.out.println("WEEKLY PhilHealth Deduction: " + philHealthDeduction);
+        System.out.println("WEEKLY Pag-IBIG Deduction: " + pagIbigDeduction);
+        
+        // Calculate taxable wage || Gross - Deductions before proceeding to withHoldingTax
+        double taxableWage = employee.getWeeklyGrossWage() - sssDeduction - philHealthDeduction - pagIbigDeduction;
+
+        // Calculate tax deduction using taxable wage instead of gross wage
+        double taxDeduction = calculateTaxDeduction(employee, withHoldingTaxMatrix, taxableWage) / 4;
+        System.out.println("Total Weekly Deduction: " + taxDeduction);
+
+        // Calculate net wage
+        double netWage = taxableWage - taxDeduction;
         employee.setWeeklyNetWage(netWage);
+        
+//        // Debugging prints
+        System.out.println("TAXABLE WAGE: " + taxableWage);
+        System.out.println("Net Weekly Wage: " + netWage);
     }
 }
 
@@ -687,11 +686,11 @@ class Employee {
 
     private void calculateWeeklyGrossWage() {
         this.weeklyGrossWage = this.hoursWorked * this.hourlyRate;
-        System.out.println("Weekly Gross Wage Calculated: " + this.weeklyGrossWage);
+//        System.out.println("Weekly Gross Wage Calculated: " + this.weeklyGrossWage);
     }
 
     public void setWeeklyNetWage(double weeklyNetWage) {
         this.weeklyNetWage = weeklyNetWage;
-        System.out.println("Weekly Net Wage Set: " + this.weeklyNetWage);
+//        System.out.println("Weekly Net Wage Set: " + this.weeklyNetWage);
     }
 }
