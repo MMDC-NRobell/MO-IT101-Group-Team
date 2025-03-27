@@ -435,24 +435,24 @@ class DeductionService {
         philHealthDeduction = philHealthDeduction / 4;
         pagIbigDeduction = pagIbigDeduction / 4;
         
-        System.out.println("WEEKLY SSS Deduction: " + sssDeduction);
-        System.out.println("WEEKLY PhilHealth Deduction: " + philHealthDeduction);
-        System.out.println("WEEKLY Pag-IBIG Deduction: " + pagIbigDeduction);
+//        System.out.println("WEEKLY SSS Deduction: " + sssDeduction);
+//        System.out.println("WEEKLY PhilHealth Deduction: " + philHealthDeduction);
+//        System.out.println("WEEKLY Pag-IBIG Deduction: " + pagIbigDeduction);
         
         // Calculate taxable wage || Gross - Deductions before proceeding to withHoldingTax
         double taxableWage = employee.getWeeklyGrossWage() - sssDeduction - philHealthDeduction - pagIbigDeduction;
 
         // Calculate tax deduction using taxable wage instead of gross wage
         double taxDeduction = calculateTaxDeduction(employee, withHoldingTaxMatrix, taxableWage) / 4;
-        System.out.println("Total Weekly Deduction: " + taxDeduction);
+//        System.out.println("Total Weekly Deduction: " + taxDeduction);
 
         // Calculate net wage
         double netWage = taxableWage - taxDeduction;
         employee.setWeeklyNetWage(netWage);
         
-//        // Debugging prints
-        System.out.println("TAXABLE WAGE: " + taxableWage);
-        System.out.println("Net Weekly Wage: " + netWage);
+        // Debugging prints
+//        System.out.println("TAXABLE WAGE: " + taxableWage);
+//        System.out.println("Net Weekly Wage: " + netWage);
     }
 }
 
